@@ -10,11 +10,15 @@ class Crawler(object):
     """docstring for Crawler"""
     BASE_URL='http://www.getlocalization.com'
 
-    def __init__(self, project='mcmmo', language='en', path='/tmp/locale'):
+    def __init__(self, 
+                 project='mcmmo', language='en', path='/tmp/locale',
+                 verbose=True,
+                ):
         super(Crawler, self).__init__()
         self.project = project
         self.language = language
         self.path = path
+        self.verbose=verbose
         self.pickle_path = "%s_%s_%s.p" % (path, project, language)
         self.pickle_load()
         self.locales =  self.get_locales()
@@ -46,6 +50,7 @@ class Crawler(object):
         
     def get_locales(self):
         """generate language tag/id mapping"""
+        print "Generate language ids .."
         locales = {}
         langs = { 
             "Chinese (China)" : "zh-CN",
@@ -126,14 +131,20 @@ class Crawler(object):
             self.items = {}
             print 'No existing pickle file!'
     
-    def fetch(self):
+    def fetch(self, resume=True):
         """fetch data"""
         ids = self.ids = self.get_string_ids()
         i = 1
         for id_ in ids:
+            if resume:
+                #. don't fetch data if exist
+                if id_ in self.items.keys():
+                    i += 1
+                    continue
             context = self.get_string_context(id_)
             string, translation = self.get_string_translation(id_)
-            print "%s=%s" % (context, translation)
+            if self.verbose:
+                print "[%s/%s] %s=%s" % (i, len(ids), context, translation)
             self.items[id_] = {
                 'context' : context,
                 'string' : string,
@@ -166,5 +177,7 @@ if __name__ == '__main__':
     crawler = Crawler(project='mcmmo', language='zh-TW')
     path='/tmp/zh_TW.locale'
     #crawler.list_items()
-    crawler.make_java_properties(path)
+    #crawler.make_java_properties(path)
+    crawler.fetch(resume=False)
+
 
