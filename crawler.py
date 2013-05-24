@@ -3,39 +3,77 @@
 import os
 import urllib
 import json
+import lxml.html
 from BeautifulSoup import BeautifulSoup
-
 
 class Crawler(object):
     """docstring for Crawler"""
-    URL_BASE='http://www.getlocalization.com'
-    #. TODO: create language/id mapping
-    LANGUAGES = {
-        'en' : '5497',
-        'zh-TW' : '10421',
-    }
+    BASE_URL='http://www.getlocalization.com'
+
     def __init__(self, project='mcmmo', language='en'):
         super(Crawler, self).__init__()
         self.project = project
         self.language = language
+        self.locales =  self.get_locales()
 
     @property
     def string_list_url(self):
         """Get URL for stlist"""
         return "%s/%s/string_filter/?language=%s&filter=quality&duplicates=1" \
-                % (self.URL_BASE, self.project, self.language)
+                % (self.BASE_URL, self.project, self.language)
 
     @property
     def string_data_url(self):
         """Get URL for string data"""
-        return "%s/%s" % (self.URL_BASE, 'ajax/stringData/?string_id=')
+        return "%s/%s" % (self.BASE_URL, 'ajax/stringData/?string_id=')
 
     @property
     def string_translantion_url(self):
         """Get URL for striing translation"""
         return "%s/editor/pages/availableTranslations/?language_id=%s&string_id=" % (
-            self.URL_BASE, self.LANGUAGES[self.language])
+            self.BASE_URL, self.locales[self.language])
         
+    def get_locales(self):
+        """generate language tag/id mapping"""
+        locales = {}
+        langs = { 
+            "Chinese (China)" : "zh-CN",
+            "Chinese (Taiwan)" : "zh-TW",
+            "Czech (Czech Republic)" : "cs-CZ",
+            "Danish" : "da",
+            "Dutch" : "nl",
+            "English" : "en",
+            "Finnish" : "fi",
+            "French" : "fr",
+            "German" : "de",
+            "Hungarian (Hungary)" : "hu-HU",
+            "Italian" : "it",
+            "Japanese (Japan)" : "ja-JP",
+            "Korean" : "ko",
+            "Latvian" : "lv",
+            "Lithuanian" : "lt",
+            "Norwegian" : "no",
+            "Polish": "pl",
+            "Polish (Poland)": "pl-PL",
+            "Portuguese (Brazil)" : "pt-BR",
+            "Russian" : "ru",
+            "Spanish" : "es",
+            "Swedish" : "sv",
+            "Thai (Thailand)" : "th-TH",
+            "Turkish (Turkey)" : "tr-TR",
+            "Welsh" : "cy",
+        }
+        f = urllib.urlopen("%s/%s" % (self.BASE_URL, self.project))
+        source = f.read()
+        html = lxml.html.fromstring(source)
+        for i in html.find_class('cell1'):
+            a = i.find('a')
+            if a != None:
+                lang = a.text_content()
+                code = a.get('href').replace('/',' ').split().pop()
+                locales[langs[lang]] = code
+        return locales
+
     def get_string_ids(self):
         """docstrig for get_string_ids"""
         ids = []
@@ -82,4 +120,5 @@ if __name__ == '__main__':
     crawler = Crawler(project='mcmmo', language='zh-TW')
     path='/tmp/zh_TW.locale'
     crawler.fetch(path)
+    #print crawler.locales
 
