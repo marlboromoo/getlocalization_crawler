@@ -1,4 +1,4 @@
-# BukkitBootstrap
+# GetlocalizationCrawler
 Crawler for getlocalization.com
 ```
   ____      _   _                 _ _          _   _              ____                    _           
