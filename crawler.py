@@ -164,7 +164,7 @@ class Crawler(object):
             with open(path, 'w') as f:
                 for k,v in self.items.items():
                     f.write("%s=%s\n" % (
-                        k, self.unicode_byte_string(v['translation'])))
+                        v['context'], self.unicode_byte_string(v['translation'])))
         except Exception, e:
             raise e
 
