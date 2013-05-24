@@ -186,14 +186,12 @@ parser.add_argument('--no_verbose', action='store_true', help="No verbose output
 args = parser.parse_args()     
 verbose = False if args.no_verbose else True
 resume = False if args.no_reume else True
+crawler = Crawler(project=args.project, language=args.lang)
 if args.action == 'fetch':
-    crawler = Crawler(project=args.project, language=args.lang)
     crawler.fetch(resume=resume)
 if args.action == 'list':
-    crawler = Crawler(project=args.project, language=args.lang)
     crawler.list_items()
 if args.action == 'make':
-    crawler = Crawler(project=args.project, language=args.lang)
     path='/tmp/zh_TW.locale'
     crawler.make_java_properties(path)
 
