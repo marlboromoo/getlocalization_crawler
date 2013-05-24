@@ -1,19 +1,24 @@
 #!/usr/bin/env python
 
-import os
+#import os
 import urllib
 import json
+import pickle
 import lxml.html
 
 class Crawler(object):
     """docstring for Crawler"""
     BASE_URL='http://www.getlocalization.com'
 
-    def __init__(self, project='mcmmo', language='en'):
+    def __init__(self, project='mcmmo', language='en', path='/tmp/locale'):
         super(Crawler, self).__init__()
         self.project = project
         self.language = language
+        self.path = path
+        self.pickle_path = "%s_%s_%s.p" % (path, project, language)
+        self.pickle_load()
         self.locales =  self.get_locales()
+        self.ids = []
 
     @property
     def string_list_url(self):
@@ -100,7 +105,7 @@ class Crawler(object):
         winner = html.find_class('ot_row_winner')[0]
         string = winner.find_class('ot_string')[0].text_content()
         translation = winner.find_class('ot_translation')[0].text_content()
-        return translation
+        return (unicode(string), unicode(translation))
 
     def unicode_byte_string(self, string):
         """
@@ -108,25 +113,58 @@ class Crawler(object):
         http://code.activestate.com/recipes/466341-guaranteed-conversion-to-unicode-or-byte-string/
         """
         return unicode(string).encode('unicode_escape')
-    
-    def fetch(self, path):
-        """fetch data"""
-        ids = self.get_string_ids()
+
+    def pickle_dump(self):
+        """docstring for pickle_dump"""
+        pickle.dump(self.items, open(self.pickle_path, 'wb'))
+
+    def pickle_load(self):
+        """docstring for pickle_load"""
         try:
-            os.unlink(path)
+            self.items = pickle.load(open(self.pickle_path, 'rb'))
         except Exception:
-            pass
+            self.items = {}
+            print 'No existing pickle file!'
+    
+    def fetch(self):
+        """fetch data"""
+        ids = self.ids = self.get_string_ids()
+        i = 1
         for id_ in ids:
             context = self.get_string_context(id_)
-            translation = self.get_string_translation(id_)
+            string, translation = self.get_string_translation(id_)
             print "%s=%s" % (context, translation)
-            with open(path, 'a') as f:
-                f.write("%s=%s\n" % (
-                    context, self.unicode_byte_string(translation)))
+            self.items[id_] = {
+                'context' : context,
+                'string' : string,
+                'translation' : translation,
+            }
+            i += 1
+            #. dump to disk every 10 items
+            if i % 10 == 0:
+                self.pickle_dump()
+
+    def make_java_properties(self, path):
+        """docstring for make_java_properties"""
+        try:
+            with open(path, 'w') as f:
+                for k,v in self.items.items():
+                    f.write("%s=%s\n" % (
+                        k, self.unicode_byte_string(v['translation'])))
+        except Exception, e:
+            raise e
+
+    def list_items(self):
+        """docstring for """
+        print self.items
+        for k,v in self.items.items():
+            print "id:%s context:%s" % (k, v['context'])
+            print "string:%s\ntranslation:%s" % (v['string'], v['translation'])
+
 
 if __name__ == '__main__':
     crawler = Crawler(project='mcmmo', language='zh-TW')
     path='/tmp/zh_TW.locale'
-    crawler.fetch(path)
-    #print crawler.locales
+    #crawler.list_items()
+    crawler.make_java_properties(path)
 
