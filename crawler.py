@@ -22,7 +22,7 @@ class Crawler(object):
         self.verbose=verbose
         self.pickle_path = "%s_%s_%s.p" % (path, project, language)
         self.pickle_load()
-        self.locales =  self.get_locales()
+        self.locales = {}
         self.ids = []
 
     @property
@@ -39,6 +39,7 @@ class Crawler(object):
     @property
     def string_translantion_url(self):
         """Get URL for striing translation"""
+        self.locales =  self.get_locales()
         return "%s/editor/pages/availableTranslations/?language_id=%s&string_id=" % (
             self.BASE_URL, self.locales[self.language])
 
