@@ -155,6 +155,7 @@ class Crawler(object):
             #. dump to disk every 10 items
             if i % 10 == 0:
                 self.pickle_dump()
+        self.pickle_dump()
 
     def make_java_properties(self, path):
         """docstring for make_java_properties"""
