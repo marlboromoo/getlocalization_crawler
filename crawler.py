@@ -4,6 +4,7 @@
 import urllib
 import json
 import pickle
+import argparse
 import lxml.html
 
 class Crawler(object):
@@ -172,12 +173,29 @@ class Crawler(object):
             print "id:%s context:%s" % (k, v['context'])
             print "string:%s\ntranslation:%s" % (v['string'], v['translation'])
 
+def main():
+    """docstring for """
+parser = argparse.ArgumentParser()                                          
+parser.add_argument('action', choices=['fetch', 'list', 'make'], help="Action to execute.")
+parser.add_argument('--project', default='mcmmo', help="Project to crawl, default: mcmmo.")
+parser.add_argument('--lang', default='zh-TW', help="Language to crawl, default: zh-TW")
+parser.add_argument('--no_reume', action='store_true', help="No resuming download.")
+parser.add_argument('--no_verbose', action='store_true', help="No verbose output.")
+args = parser.parse_args()     
+verbose = False if args.no_verbose else True
+resume = False if args.no_reume else True
+if args.action == 'fetch':
+    crawler = Crawler(project=args.project, language=args.lang)
+    crawler.fetch(resume=resume)
+if args.action == 'list':
+    crawler = Crawler(project=args.project, language=args.lang)
+    crawler.list_items()
+if args.action == 'make':
+    crawler = Crawler(project=args.project, language=args.lang)
+    path='/tmp/zh_TW.locale'
+    crawler.make_java_properties(path)
 
 if __name__ == '__main__':
-    crawler = Crawler(project='mcmmo', language='zh-TW')
-    path='/tmp/zh_TW.locale'
-    #crawler.list_items()
-    #crawler.make_java_properties(path)
-    crawler.fetch(resume=False)
+    main()
 
 
