@@ -4,7 +4,6 @@ import os
 import urllib
 import json
 import lxml.html
-from BeautifulSoup import BeautifulSoup
 
 class Crawler(object):
     """docstring for Crawler"""
@@ -32,6 +31,13 @@ class Crawler(object):
         """Get URL for striing translation"""
         return "%s/editor/pages/availableTranslations/?language_id=%s&string_id=" % (
             self.BASE_URL, self.locales[self.language])
+
+    def fetch_url(self, url):
+        """return html source data in unicode"""
+        f = urllib.urlopen(url)
+        data = f.read().decode('utf-8')
+        f.close()
+        return data
         
     def get_locales(self):
         """generate language tag/id mapping"""
@@ -63,9 +69,8 @@ class Crawler(object):
             "Turkish (Turkey)" : "tr-TR",
             "Welsh" : "cy",
         }
-        f = urllib.urlopen("%s/%s" % (self.BASE_URL, self.project))
-        source = f.read()
-        html = lxml.html.fromstring(source)
+        data = self.fetch_url("%s/%s" % (self.BASE_URL, self.project))
+        html = lxml.html.fromstring(data)
         for i in html.find_class('cell1'):
             a = i.find('a')
             if a != None:
@@ -77,22 +82,25 @@ class Crawler(object):
     def get_string_ids(self):
         """docstrig for get_string_ids"""
         ids = []
-        f = urllib.urlopen(self.string_list_url)
-        soap = BeautifulSoup(f.read())
-        for li in soap.findAll("li"):
-            ids.append(li.get('id').replace('pstring_', ''))
+        data = self.fetch_url(self.string_list_url)
+        html = lxml.html.fromstring(data)
+        for i in html.findall('li'):
+            ids.append(i.get('id').replace('pstring_', ''))
         return ids
     
     def get_string_context(self, id_):
         """docstring for get_string_context"""
-        f = urllib.urlopen("%s%s" % (self.string_data_url, id_))
-        return json.loads(f.read())['context']
+        data = self.fetch_url("%s%s" % (self.string_data_url, id_))
+        return json.loads(data)['context']
     
     def get_string_translation(self, id_):
         """docstring for get_string_translation"""
-        f = urllib.urlopen("%s%s" % (self.string_translantion_url, id_))
-        soap = BeautifulSoup(f.read())
-        return soap.findAll("td",{"class":"ot_translation"})[1].getString()
+        data = self.fetch_url("%s%s" % (self.string_translantion_url, id_))
+        html = lxml.html.fromstring(data) 
+        winner = html.find_class('ot_row_winner')[0]
+        string = winner.find_class('ot_string')[0].text_content()
+        translation = winner.find_class('ot_translation')[0].text_content()
+        return translation
 
     def unicode_byte_string(self, string):
         """
