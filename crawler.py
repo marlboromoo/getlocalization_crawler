@@ -175,7 +175,11 @@ class Crawler(object):
         """docstring for __fetch"""
         context = self.get_string_context(id_)
         string, translation = self.get_string_translation(id_)
-        return context, string, translation
+        self.items[id_] = {
+            'context' : context,
+            'string' : string,
+            'translation' : translation,
+        }
     
     def fetch(self, username, password, resume=True):
         """fetch data"""
@@ -191,16 +195,11 @@ class Crawler(object):
                 if id_ in self.items.keys():
                     i += 1
                     continue
-            #context = self.get_string_context(id_)
-            #string, translation = self.get_string_translation(id_)
-            context, string, translation = self.__fetch(id_)
+            self.__fetch(id_)
             if self.verbose:
-                print "[%s/%s] %s=%s" % (i, len(ids), context, translation)
-            self.items[id_] = {
-                'context' : context,
-                'string' : string,
-                'translation' : translation,
-            }
+                print "[%s/%s] %s=%s" % (
+                    i, len(ids), 
+                    self.items[id_]['context'], self.items[id_]['translation'])
             i += 1
             #. dump to disk every 10 items
             if i % 10 == 0:
@@ -273,9 +272,12 @@ class Crawler(object):
         if id_:
             return self.edit_item_by_id(id_)
 
-    def update(self, id_):
-        """docstring for update"""
-        pass
+    def update_item(self, username, password, id_):
+        """update item in local cache from getlocalization.com"""
+        self.login(username, password)
+        self.locales = self.get_locales()
+        self.__fetch(id_)
+        self.pickle_dump()
 
 def main():
     """docstring for """
@@ -314,6 +316,15 @@ parser_edit = subparsers.add_parser(
     'edit', help="edit the translation in the local cache")
 parser_edit.add_argument(
     'translation', help="new translation to update")
+#. cmd: update
+parser_update= subparsers.add_parser(
+    'update', help="udpate the item in local cache from getlocalization.com")
+parser_update.add_argument(
+    'username', help="username for getlocalization.com")
+parser_update.add_argument(
+    'password', help="password for getlocalization.com")
+parser_update.add_argument(
+    'id', help="specific id to update")
 #. global args
 group_target= parser.add_mutually_exclusive_group()
 group_target.add_argument(
@@ -329,10 +340,10 @@ parser.add_argument(
 #. parse args
 args = parser.parse_args()     
 verbose = False if args.no_verbose else True
-resume = False if args.no_resume else True
 #. do my job
 crawler = Crawler(project=args.project, language=args.lang)
 if args.cmd == 'fetch':
+    resume = False if args.no_resume else True
     crawler.fetch(args.username, args.password, resume=resume)
 if args.cmd == 'list':
     crawler.list_items()
@@ -356,6 +367,8 @@ if args.cmd == 'edit':
         crawler.edit_item_by_context(args.id, args.translation)
     else:
         print "%s" % (target_err_msg)
+if args.cmd == 'update':
+    crawler.update_item(args.username, args.password, args.id)
 
 if __name__ == '__main__':
     main()
