@@ -2,6 +2,8 @@
 
 #import os
 import urllib
+import urllib2
+import cookielib
 import json
 import pickle
 import argparse
@@ -24,6 +26,7 @@ class Crawler(object):
         self.pickle_load()
         self.locales = {}
         self.ids = []
+        self.opener = None
 
     @property
     def string_list_url(self):
@@ -39,16 +42,42 @@ class Crawler(object):
     @property
     def string_translantion_url(self):
         """Get URL for striing translation"""
-        self.locales =  self.get_locales()
         return "%s/editor/pages/availableTranslations/?language_id=%s&string_id=" % (
             self.BASE_URL, self.locales[self.language])
 
+    @property
+    def login_url(self):
+        """Login url for getlocalization.com"""
+        return "%s/accounts/login/" % (self.BASE_URL)
+
     def fetch_url(self, url):
         """return html source data in unicode"""
-        f = urllib.urlopen(url)
+        f = self.opener.open(url)
         data = f.read().decode('utf-8')
         f.close()
         return data
+
+    def get_csrf_token(self, opener, cookiejar, login_url):
+        """
+        get csrf token from cookie
+        ref: http://stackoverflow.com/questions/3623925/how-do-i-post-to-a-django-1-2-form-using-urllib
+        """
+        opener.open(login_url)
+        token = [x.value for x in cookiejar if x.name == 'csrftoken'][0]
+        return token
+
+    def login(self, username, password):
+        """login to getlocalization.com"""
+        cookiejar = cookielib.CookieJar()
+        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar))
+        opener.addheaders.append(('Referer', self.login_url))
+        token = self.get_csrf_token(opener, cookiejar, self.login_url)
+        login_data = urllib.urlencode(
+            {'username' : username,
+             'password' : password,
+             'csrfmiddlewaretoken' : token})
+        opener.open(self.login_url, login_data)
+        self.opener = opener
         
     def get_locales(self):
         """generate language tag/id mapping"""
@@ -146,11 +175,14 @@ class Crawler(object):
         string, translation = self.get_string_translation(id_)
         return context, string, translation
     
-    def fetch(self, resume=True):
+    def fetch(self, username, password, resume=True):
         """fetch data"""
+        #. init data
+        self.login(username, password)
+        self.locales = self.get_locales()
         ids = self.ids = self.get_string_ids()
+        #. do my job
         i = 1
-        print ids
         for id_ in ids:
             if resume:
                 #. don't fetch data if exist
@@ -251,6 +283,12 @@ subparsers = parser.add_subparsers(
 #. cmd: fetch
 parser_fetch = subparsers.add_parser(
     'fetch', help="fetch data from getlocalization.com")
+parser_fetch.add_argument(
+    'username', help="username for getlocalization.com")
+parser_fetch.add_argument(
+    'password', help="password for getlocalization.com")
+parser_fetch.add_argument(
+    '--no_resume', action='store_true', help="no resuming download")
 #. cmd: list
 parser_list = subparsers.add_parser(
     'list', help="list data from local cache")
@@ -285,8 +323,6 @@ parser.add_argument(
 parser.add_argument(
     '--lang', default='zh-TW', help="language to crawl, default: zh-TW")
 parser.add_argument(
-    '--no_resume', action='store_true', help="no resuming download")
-parser.add_argument(
     '--no_verbose', action='store_true', help="no verbose output")
 #. parse args
 args = parser.parse_args()     
@@ -295,7 +331,7 @@ resume = False if args.no_resume else True
 #. do my job
 crawler = Crawler(project=args.project, language=args.lang)
 if args.cmd == 'fetch':
-    crawler.fetch(resume=resume)
+    crawler.fetch(args.username, args.password, resume=resume)
 if args.cmd == 'list':
     crawler.list_items()
 if args.cmd == 'make':
