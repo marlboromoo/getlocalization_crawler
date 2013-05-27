@@ -178,20 +178,28 @@ class Crawler(object):
 def main():
     """docstring for """
 parser = argparse.ArgumentParser()                                          
-parser.add_argument('action', choices=['fetch', 'list', 'make'], help="Action to execute.")
-parser.add_argument('--project', default='mcmmo', help="Project to crawl, default: mcmmo.")
-parser.add_argument('--lang', default='zh-TW', help="Language to crawl, default: zh-TW")
-parser.add_argument('--no_reume', action='store_true', help="No resuming download.")
-parser.add_argument('--no_verbose', action='store_true', help="No verbose output.")
+#. commands
+subparsers = parser.add_subparsers(dest='cmd', title='command', help='valid commands')
+parser_fetch = subparsers.add_parser('fetch', help="fetch data from getlocalization.com.")
+parser_list = subparsers.add_parser('list', help="list data from local cache.")
+parser_make = subparsers.add_parser('make', help="generate file with specify project type.")
+parser_make.add_argument('--type', default='java', choices=['java', '..'])
+#. global args
+parser.add_argument('--project', default='mcmmo', help="project to crawl, default: mcmmo.")
+parser.add_argument('--lang', default='zh-TW', help="language to crawl, default: zh-TW")
+parser.add_argument('--no_reume', action='store_true', help="no resuming download.")
+parser.add_argument('--no_verbose', action='store_true', help="no verbose output.")
+#. parse args
 args = parser.parse_args()     
 verbose = False if args.no_verbose else True
 resume = False if args.no_reume else True
+#. do my job
 crawler = Crawler(project=args.project, language=args.lang)
-if args.action == 'fetch':
+if args.cmd == 'fetch':
     crawler.fetch(resume=resume)
-if args.action == 'list':
+if args.cmd == 'list':
     crawler.list_items()
-if args.action == 'make':
+if args.cmd == 'make':
     path='/tmp/zh_TW.locale'
     crawler.make_java_properties(path)
 
