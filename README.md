@@ -24,7 +24,6 @@ git clone https://github.com/marlboromoo/getlocalization_crawler.git
 ```
 
 ## Usage
-Control script for bukkit server.
 ```
 cd ~/getlocalization_crawler/
 chmod +x crawler.py
