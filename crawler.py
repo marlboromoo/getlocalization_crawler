@@ -68,6 +68,7 @@ class Crawler(object):
 
     def login(self, username, password):
         """login to getlocalization.com"""
+        print "Login to getlocalization.com .."
         cookiejar = cookielib.CookieJar()
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar))
         opener.addheaders.append(('Referer', self.login_url))
@@ -81,7 +82,7 @@ class Crawler(object):
         
     def get_locales(self):
         """generate language tag/id mapping"""
-        print "Generate language ids .."
+        print "Check available languages .."
         locales = {}
         langs = { 
             "Chinese (China)" : "zh-CN",
@@ -122,6 +123,7 @@ class Crawler(object):
 
     def get_string_ids(self):
         """docstrig for get_string_ids"""
+        print "Check available items .."
         ids = []
         data = self.fetch_url(self.string_list_url)
         html = lxml.html.fromstring(data)
