@@ -118,7 +118,8 @@ class Crawler(object):
             if a != None:
                 lang = a.text_content()
                 code = a.get('href').replace('/',' ').split().pop()
-                locales[langs[lang]] = code
+                if langs.has_key(lang):
+                    locales[langs[lang]] = code
         return locales
 
     def get_string_ids(self):
