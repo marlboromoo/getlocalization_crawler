@@ -5,8 +5,8 @@
 
 """Crawler
 Usage:
-  crawler.py fetch [-v] <username> <password> [--project=<name> --language=<code> --purge]
-  crawler.py update [-v] <username> <password> (--id=<id>)
+  crawler.py fetch [-v] [--project=<name> --language=<code> --purge]
+  crawler.py update [-v] (--id=<id>)
   crawler.py edit [-v] <translation> (--id=<id> | --context=<context>)
   crawler.py show [-v] (--id=<id> | --context=<context>)
   crawler.py list [-v]
@@ -28,12 +28,12 @@ Options:
 
 """
 
-#import os
 import urllib
 import urllib2
 import cookielib
 import json
 import pickle
+import getpass
 import lxml.html
 from docopt import docopt
 
@@ -77,6 +77,15 @@ class Crawler(object):
     def login_url(self):
         """Login url for getlocalization.com"""
         return "%s/accounts/login/" % (self.BASE_URL)
+
+    def get_login_info(self):
+        """Get username/password from client input.
+        :returns: (username, passowrd)
+
+        """
+        username = raw_input("Username: ")
+        password = getpass.getpass("Password:")
+        return (username, password)
 
     def fetch_url(self, url):
         """return html source data in unicode"""
@@ -322,7 +331,8 @@ if __name__ == '__main__':
     #. do my job
     if args['fetch']:
         resume = False if args['--purge'] else True
-        crawler.fetch(args['<username>'], args['<password>'], resume=resume)
+        username, password = crawler.get_login_info()
+        crawler.fetch(username, password, resume=resume)
     if args['list']:
         crawler.list_items()
     if args['make']:
@@ -343,5 +353,6 @@ if __name__ == '__main__':
         else:
             crawler.edit_item_by_context(args['--id'], args['<translation>'])
     if args['update']:
-        crawler.update_item(args['<username>'], args['<password>'], args['--id'])
+        username, password = crawler.get_login_info()
+        crawler.update_item(username, password, args['--id'])
 
