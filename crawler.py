@@ -1,19 +1,47 @@
 #!/usr/bin/env python
 
+# TODO: 1. Get username/password from input not from options.
+#       2. Notice user if auth fail
+
+"""Crawler
+Usage:
+  crawler.py fetch [-v] <username> <password> [--project=<name> --language=<code> --purge]
+  crawler.py update [-v] <username> <password> (--id=<id>)
+  crawler.py edit [-v] <translation> (--id=<id> | --context=<context>)
+  crawler.py show [-v] (--id=<id> | --context=<context>)
+  crawler.py list [-v]
+  crawler.py make [-v] <path> [--format=<type>]
+  crawler.py search [-v] <keyword>
+  crawler.py (-h | --help)
+  crawler.py (-V | --version)
+
+Options:
+  -h --help             Show this screen.
+  -v --verbose          Verbose output [default: False].
+  -V --version          Show version.
+  --id=<id>             String ID.
+  --context=<context>   String context.
+  --project=<name>      Project name [default: mcmmo].
+  --purge               Purge the cache file first.
+  --format=<type>       Translation files format [default: java].
+  --language=<code>     Language code [default: zh-TW].
+
+"""
+
 #import os
 import urllib
 import urllib2
 import cookielib
 import json
 import pickle
-import argparse
 import lxml.html
+from docopt import docopt
 
 class Crawler(object):
     """docstring for Crawler"""
     BASE_URL='http://www.getlocalization.com'
 
-    def __init__(self, 
+    def __init__(self,
                  project='mcmmo', language='en', path='/tmp/locale',
                  verbose=True,
                 ):
@@ -79,12 +107,12 @@ class Crawler(object):
              'csrfmiddlewaretoken' : token})
         opener.open(self.login_url, login_data)
         self.opener = opener
-        
+
     def get_locales(self):
         """generate language tag/id mapping"""
         print "Check available languages .."
         locales = {}
-        langs = { 
+        langs = {
             "Chinese (China)" : "zh-CN",
             "Chinese (Taiwan)" : "zh-TW",
             "Czech (Czech Republic)" : "cs-CZ",
@@ -131,16 +159,16 @@ class Crawler(object):
         for i in html.findall('li'):
             ids.append(i.get('id').replace('pstring_', ''))
         return ids
-    
+
     def get_string_context(self, id_):
         """docstring for get_string_context"""
         data = self.fetch_url("%s%s" % (self.string_data_url, id_))
         return json.loads(data)['context']
-    
+
     def get_string_translation(self, id_):
         """docstring for get_string_translation"""
         data = self.fetch_url("%s%s" % (self.string_translantion_url, id_))
-        html = lxml.html.fromstring(data) 
+        html = lxml.html.fromstring(data)
         winner = html.find_class('ot_row_winner')[0]
         string = winner.find_class('ot_string')[0].text_content()
         translation = winner.find_class('ot_translation')[0].text_content()
@@ -181,7 +209,7 @@ class Crawler(object):
             'string' : string,
             'translation' : translation,
         }
-    
+
     def fetch(self, username, password, resume=True):
         """fetch data"""
         #. init data
@@ -199,7 +227,7 @@ class Crawler(object):
             self.__fetch(id_)
             if self.verbose:
                 print "[%s/%s] %s=%s" % (
-                    i, len(ids), 
+                    i, len(ids),
                     self.items[id_]['context'], self.items[id_]['translation'])
             i += 1
             #. dump to disk every 10 items
@@ -280,98 +308,40 @@ class Crawler(object):
         self.__fetch(id_)
         self.pickle_dump()
 
-def main():
-    """docstring for """
-parser = argparse.ArgumentParser()                                          
-subparsers = parser.add_subparsers(
-    dest='cmd', title='command')
-#. cmd: fetch
-parser_fetch = subparsers.add_parser(
-    'fetch', help="fetch data from getlocalization.com")
-parser_fetch.add_argument(
-    'username', help="username for getlocalization.com")
-parser_fetch.add_argument(
-    'password', help="password for getlocalization.com")
-parser_fetch.add_argument(
-    '--no_resume', action='store_true', help="no resuming download")
-#. cmd: list
-parser_list = subparsers.add_parser(
-    'list', help="list data from local cache")
-#. cmd: make
-parser_make = subparsers.add_parser(
-    'make', help="generate file with specific type from local cache")
-parser_make.add_argument(
-    'path', help="path to writing file")
-parser_make.add_argument(
-    '--type', default='java', choices=['java', '..'])
-#. cmd: search
-parser_search = subparsers.add_parser(
-    'search', help="search item from local cache")
-parser_search.add_argument(
-    'keyword', help="keyword to search")
-#. cmd: show
-parser_show = subparsers.add_parser(
-    'show', help="show the item from local cache")
-#. cmd: edit
-parser_edit = subparsers.add_parser(
-    'edit', help="edit the translation in the local cache")
-parser_edit.add_argument(
-    'translation', help="new translation to update")
-#. cmd: update
-parser_update= subparsers.add_parser(
-    'update', help="udpate the item in local cache from getlocalization.com")
-parser_update.add_argument(
-    'username', help="username for getlocalization.com")
-parser_update.add_argument(
-    'password', help="password for getlocalization.com")
-parser_update.add_argument(
-    'id', help="specific id to update")
-#. global args
-group_target= parser.add_mutually_exclusive_group()
-group_target.add_argument(
-    '--id', help="specify the id")
-group_target.add_argument(
-    '--context', help="specify the context")
-parser.add_argument(
-    '--project', default='mcmmo', help="project to crawl, default: mcmmo")
-parser.add_argument(
-    '--lang', default='zh-TW', help="language to crawl, default: zh-TW")
-parser.add_argument(
-    '--no_verbose', action='store_true', help="no verbose output")
-#. parse args
-args = parser.parse_args()     
-verbose = False if args.no_verbose else True
-#. do my job
-crawler = Crawler(project=args.project, language=args.lang)
-if args.cmd == 'fetch':
-    resume = False if args.no_resume else True
-    crawler.fetch(args.username, args.password, resume=resume)
-if args.cmd == 'list':
-    crawler.list_items()
-if args.cmd == 'make':
-    if args.type == 'java':
-        crawler.make_java_properties(args.path)
-if args.cmd == 'search':
-    crawler.search_item(args.keyword)
-target_err_msg = "Use with option --id or --context"
-if args.cmd == 'show':
-    if args.id:
-        crawler.show_item_by_id(args.id)
-    elif args.context:
-        crawler.show_item_by_context(args.context)
-    else:
-        print "%s" % (target_err_msg)
-if args.cmd == 'edit':
-    if args.id:
-        crawler.edit_item_by_id(args.id, args.translation)
-    elif args.context:
-        crawler.edit_item_by_context(args.id, args.translation)
-    else:
-        print "%s" % (target_err_msg)
-if args.cmd == 'update':
-    crawler.update_item(args.username, args.password, args.id)
-
 if __name__ == '__main__':
-    main()
+    #. parse the args
+    args = docopt(__doc__, version='Crawler 0.1')
+    #print(arguments)
 
+    #. init the crawler
+    crawler = Crawler(
+        project=args['--project'],
+        language=args['--language'],
+        verbose=args['--verbose'])
+
+    #. do my job
+    if args['fetch']:
+        resume = False if args['--purge'] else True
+        crawler.fetch(args['<username>'], args['<password>'], resume=resume)
+    if args['list']:
+        crawler.list_items()
+    if args['make']:
+        if args['--format'] == 'java':
+            crawler.make_java_properties(args['<path>'])
+        else:
+            print("Current only support java only.")
+    if args['search']:
+        crawler.search_item(args['<keyword>'])
+    if args['show']:
+        if args['--id']:
+            crawler.show_item_by_id(args['--id'])
+        else:
+            crawler.show_item_by_context(args['--context'])
+    if args['edit']:
+        if args['--id']:
+            crawler.edit_item_by_id(args['--id'], args['<translation>'])
+        else:
+            crawler.edit_item_by_context(args['--id'], args['<translation>'])
+    if args['update']:
+        crawler.update_item(args['<username>'], args['<password>'], args['--id'])
 
