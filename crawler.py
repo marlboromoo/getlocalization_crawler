@@ -176,11 +176,14 @@ class Crawler(object):
 
     def get_string_translation(self, id_):
         """docstring for get_string_translation"""
-        data = self.fetch_url("%s%s" % (self.string_translantion_url, id_))
-        html = lxml.html.fromstring(data)
-        winner = html.find_class('ot_row_winner')[0]
-        string = winner.find_class('ot_string')[0].text_content()
-        translation = winner.find_class('ot_translation')[0].text_content()
+        try:
+            data = self.fetch_url("%s%s" % (self.string_translantion_url, id_))
+            html = lxml.html.fromstring(data)
+            winner = html.find_class('ot_row_winner')[0]
+            string = winner.find_class('ot_string')[0].text_content()
+            translation = winner.find_class('ot_translation')[0].text_content()
+        except Exception:
+            return None, None
         return (unicode(string), unicode(translation))
 
     def unicode_byte_string(self, string):
@@ -225,6 +228,10 @@ class Crawler(object):
         self.login(username, password)
         self.locales = self.get_locales()
         ids = self.ids = self.get_string_ids()
+        if len(ids) == 0:
+            print "Fail !!"
+        else:
+            print "Please wait .."
         #. do my job
         i = 1
         for id_ in ids:
