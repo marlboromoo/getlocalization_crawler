@@ -18,7 +18,7 @@ Crawler for getlocalization.com
 ## Install
 ```sh
 sudo apt-get install libxml2-dev libxslt-dev
-sudo pip install lxml
+sudo pip install lxml docopt
 cd ~/
 git clone https://github.com/marlboromoo/getlocalization_crawler.git
 
